@@ -121,22 +121,11 @@
             <Slider label="Resolution" val={params.resolution} min={16} max={256} step={1} onChange={v => setParam('resolution', v)} />
             <Slider label="Mesh Scale" val={params.meshScale} min={0.1} max={2} step={0.01} onChange={v => setParam('meshScale', v)} />
             <Slider label="Point Size" val={params.pointSize} min={1} max={20} step={0.5} onChange={v => setParam('pointSize', v)} />
+            <Slider label="Point Aspect" val={params.pointAspect} min={0.1} max={5} step={0.05} onChange={v => setParam('pointAspect', v)} fmt={v => v.toFixed(2) + '×'} />
             <Slider label="Min Visibility" val={params.minVisibility} min={0} max={0.5} step={0.01} onChange={v => setParam('minVisibility', v)} />
             <div style={{ marginTop: 6 }}>
               <div className="vm-sl-head"><span className="vm-sl-lbl">Mesh Type</span></div>
               <Seg options={[{ v: 'points', l: 'Points' }]} value={params.meshType} onChange={v => setParam('meshType', v)} />
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div className="vm-sl-head" style={{ marginBottom: 3 }}>
-                <span className="vm-sl-lbl">Character String</span>
-              </div>
-              <input className="vm-str-in" type="text" value={params.characterString}
-                onChange={e => setParam('characterString', e.target.value)} />
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div className="vm-sl-head"><span className="vm-sl-lbl">Placement</span></div>
-              <Seg options={[{ v: 'random', l: 'Random' }, { v: 'ascender', l: 'Ascender' }]}
-                value={params.placementMode} onChange={v => setParam('placementMode', v)} />
             </div>
           </Acc>
 

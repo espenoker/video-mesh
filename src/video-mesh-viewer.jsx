@@ -10,18 +10,24 @@
     varying vec3 vCol;
     varying float vAlpha;
     uniform float uPS;
+    uniform float uPA;
     void main() {
       vCol = aCol; vAlpha = aAlpha;
       vec4 mv = modelViewMatrix * vec4(position, 1.0);
-      gl_PointSize = max(0.5, aSize * uPS);
+      gl_PointSize = max(0.5, aSize * uPS * max(1.0, uPA));
       gl_Position = projectionMatrix * mv;
     }
   `;
   const FRAG = `
     varying vec3 vCol;
     varying float vAlpha;
+    uniform float uPA;
     void main() {
       if (vAlpha < 0.004) discard;
+      float pa = max(0.05, uPA);
+      vec2 pc = gl_PointCoord - 0.5;
+      if (abs(pc.x) > min(0.5, 0.5 * pa)) discard;
+      if (abs(pc.y) > 0.5 / max(1.0, pa)) discard;
       gl_FragColor = vec4(vCol, vAlpha);
     }
   `;
@@ -222,7 +228,7 @@
       const mat = new THREE.ShaderMaterial({
         vertexShader: VERT, fragmentShader: FRAG,
         transparent: true, depthWrite: false,
-        uniforms: { uPS: { value: p0.pointSize } },
+        uniforms: { uPS: { value: p0.pointSize }, uPA: { value: p0.pointAspect ?? 1.0 } },
       });
       matRef.current = mat;
       group.add(new THREE.Points(geom, mat));
@@ -284,6 +290,7 @@
 
         const p = paramsRef.current;
         mat.uniforms.uPS.value = p.pointSize;
+        mat.uniforms.uPA.value = p.pointAspect ?? 1.0;
 
         // resize if needed
         if (renderer.domElement.width !== p.outputWidth || renderer.domElement.height !== p.outputHeight) {
