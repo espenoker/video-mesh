@@ -401,6 +401,34 @@
         onSourceChange?.(null);
       },
       getFps() { return fpsRef.current; },
+      startRecording(durationSec) {
+        return new Promise((resolve, reject) => {
+          const canvas = rendRef.current?.domElement;
+          if (!canvas) return reject(new Error('No canvas'));
+          let stream;
+          try { stream = canvas.captureStream(30); }
+          catch(e) { return reject(new Error('captureStream not supported in this browser')); }
+          const mimeType = ['video/webm;codecs=vp9', 'video/webm']
+            .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch{ return false; } }) || 'video/webm';
+          let recorder;
+          try { recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 }); }
+          catch(e) { return reject(new Error('MediaRecorder not supported')); }
+          const chunks = [];
+          recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+          recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `video-mesh-${durationSec}s.webm`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          recorder.onerror = e => reject(e.error ?? new Error('Recording error'));
+          recorder.start(100);
+          setTimeout(() => recorder.stop(), durationSec * 1000);
+        });
+      },
     }), [clearSrc]);
 
     return <div ref={mountRef} style={{ display: 'contents' }} />;

@@ -169,6 +169,16 @@ input[type="color"]::-webkit-color-swatch{border:none}
 @keyframes vmblink{0%,100%{opacity:1}50%{opacity:.2}}
 .vm-status-fps{color:var(--ink-faint);font-variant-numeric:tabular-nums}
 
+/* EXPORT / RECORDING */
+.vm-rec-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.vm-rec-btn{padding:7px 4px;background:rgba(255,255,255,0.03);border:1px solid var(--hairline);color:var(--ink-dim);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-align:center;transition:all 120ms;cursor:pointer}
+.vm-rec-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.22);color:var(--ink)}
+.vm-rec-active{display:flex;flex-direction:column;gap:7px}
+.vm-rec-dot{width:7px;height:7px;border-radius:50%;background:var(--hot);display:inline-block;animation:vmblink .8s ease infinite;flex-shrink:0}
+.vm-rec-label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--hot);display:flex;align-items:center;gap:7px}
+.vm-rec-bar{height:2px;background:rgba(255,90,31,0.15);width:100%}
+.vm-rec-fill{height:100%;background:var(--hot);transition:width 100ms linear}
+
 /* ERROR TOAST */
 .vm-err{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:rgba(8,8,10,.97);border:1px solid rgba(255,90,31,.38);color:var(--hot);padding:7px 13px;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;z-index:100;max-width:380px;text-align:center;animation:vmfio 3.5s ease forwards;pointer-events:none}
 @keyframes vmfio{0%{opacity:0;transform:translate(-50%,8px)}12%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-4px)}}

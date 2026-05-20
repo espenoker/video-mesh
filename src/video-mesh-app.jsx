@@ -47,6 +47,7 @@
     const [fps, setFps] = useState(0);
     const [showAspect, setShowAspect] = useState(false);
     const [previewScale, setPreviewScale] = useState(1);
+    const [recording, setRecording] = useState(null); // null | { duration, startTime }
 
     const viewerRef = useRef(null);
     const centerRef = useRef(null);
@@ -110,6 +111,17 @@
 
     function handleReset() {
       setParams(p => ({ ...DEFAULTS, title: p.title, description: p.description, tags: p.tags }));
+    }
+
+    async function handleRecord(duration) {
+      if (recording) return;
+      setRecording({ duration, startTime: Date.now() });
+      try {
+        await viewerRef.current?.startRecording(duration);
+      } catch(e) {
+        showError(e?.message ?? 'Export failed');
+      }
+      setRecording(null);
     }
 
     function handleScreenshot() {
@@ -223,6 +235,8 @@
             onLoadSample={handleLoadSample}
             onClear={handleClear}
             onReset={handleReset}
+            recording={recording}
+            onRecord={handleRecord}
           />
           <div className="vm-status">
             {activeSource

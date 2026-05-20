@@ -50,10 +50,22 @@
     );
   }
 
-  function VideoMeshControls({ params, setParam, activeSource, fileName, onLoadFile, onLoadUrl, onLoadWebcam, onLoadSample, onClear, onReset }) {
+  function VideoMeshControls({ params, setParam, activeSource, fileName, onLoadFile, onLoadUrl, onLoadWebcam, onLoadSample, onClear, onReset, recording, onRecord }) {
     const [urlVal, setUrlVal] = useState('');
     const [showAspect, setShowAspect] = useState(false);
+    const [recRemaining, setRecRemaining] = React.useState(0);
     const fileInputRef = useRef(null);
+
+    React.useEffect(() => {
+      if (!recording) { setRecRemaining(0); return; }
+      setRecRemaining(recording.duration);
+      const id = setInterval(() => {
+        const elapsed = (Date.now() - recording.startTime) / 1000;
+        const left = Math.max(0, recording.duration - elapsed);
+        setRecRemaining(left);
+      }, 100);
+      return () => clearInterval(id);
+    }, [recording]);
 
     const PRESETS = [
       { l: 'Custom',       v: 'custom',  w: null,  h: null },
@@ -157,8 +169,32 @@
             <Toggle label="Show Background Video" value={params.showBackgroundVideo} onChange={v => setParam('showBackgroundVideo', v)} />
           </Acc>
 
-          {/* 5. BACKGROUND */}
-          <Acc num="5." title="Background">
+          {/* 5. EXPORT */}
+          <Acc num="5." title="Export">
+            {recording ? (
+              <div className="vm-rec-active">
+                <span className="vm-rec-dot" />
+                <span className="vm-rec-label">Recording — {Math.ceil(recRemaining)}s left</span>
+                <div className="vm-rec-bar">
+                  <div className="vm-rec-fill" style={{ width: `${((recording.duration - recRemaining) / recording.duration) * 100}%` }} />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="vm-sl-head" style={{ marginBottom: 6 }}>
+                  <span className="vm-sl-lbl">Duration</span>
+                </div>
+                <div className="vm-rec-btns">
+                  {[2, 5, 10].map(d => (
+                    <button key={d} className="vm-rec-btn" onClick={() => onRecord(d)}>{d}s</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Acc>
+
+          {/* 6. BACKGROUND */}
+          <Acc num="6." title="Background">
             <div className="vm-bg-modes">
               {['none', 'solid', 'image'].map(m => (
                 <button key={m} className={`vm-bg-mode${params.backgroundMode === m ? ' on' : ''}`}
