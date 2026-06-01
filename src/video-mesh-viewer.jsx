@@ -105,6 +105,7 @@
     const srcRef = useRef(null);
     const streamRef = useRef(null);
     const stRef = useRef(0); // sample time for procedural
+    const imgRef = useRef(null); // static image element
 
     // typed arrays
     const pos = useRef(new Float32Array(MAX_PTS * 3));
@@ -178,6 +179,8 @@
     }, []);
 
     const clearSrc = useCallback(() => {
+      if (imgRef.current?.src?.startsWith('blob:')) URL.revokeObjectURL(imgRef.current.src);
+      imgRef.current = null;
       const v = vidRef.current;
       if (!v) return;
       v.pause();
@@ -324,6 +327,13 @@
           drawSample(sctxRef.current, w, h, stRef.current);
           dimsRef.current = { w, h, n: w * h };
           updateGeom(sctxRef.current, w, h, p);
+        } else if (src === 'image' && imgRef.current?.complete) {
+          const img = imgRef.current;
+          const { w, h } = calcDims(p.resolution, img.naturalWidth / img.naturalHeight);
+          if (scv.width !== w || scv.height !== h) { scv.width = w; scv.height = h; }
+          sctxRef.current.drawImage(img, 0, 0, w, h);
+          dimsRef.current = { w, h, n: w * h };
+          updateGeom(sctxRef.current, w, h, p);
         } else if (src && vid.readyState >= 2 && !vid.paused) {
           const vw = vid.videoWidth, vh = vid.videoHeight;
           if (vw > 0 && vh > 0) {
@@ -362,6 +372,14 @@
     useImperativeHandle(ref, () => ({
       captureStill() {
         return rendRef.current?.domElement.toDataURL('image/png') ?? null;
+      },
+      loadImage(file) {
+        clearSrc();
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { imgRef.current = img; srcRef.current = 'image'; onSourceChange?.('image'); };
+        img.onerror = () => { URL.revokeObjectURL(url); onError?.('Could not load image.'); };
+        img.src = url;
       },
       async loadFile(file) {
         clearSrc();

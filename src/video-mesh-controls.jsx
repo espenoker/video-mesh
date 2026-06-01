@@ -50,11 +50,12 @@
     );
   }
 
-  function VideoMeshControls({ params, setParam, activeSource, fileName, onLoadFile, onLoadUrl, onLoadWebcam, onLoadSample, onClear, onReset, recording, onRecord }) {
+  function VideoMeshControls({ params, setParam, activeSource, fileName, onLoadFile, onLoadUrl, onLoadWebcam, onLoadSample, onLoadImage, onClear, onReset, recording, onRecord }) {
     const [urlVal, setUrlVal] = useState('');
     const [showAspect, setShowAspect] = useState(false);
     const [recRemaining, setRecRemaining] = React.useState(0);
     const fileInputRef = useRef(null);
+    const imgInputRef = useRef(null);
 
     React.useEffect(() => {
       if (!recording) { setRecRemaining(0); return; }
@@ -78,6 +79,12 @@
     function handleFile(e) {
       const f = e.target.files?.[0];
       if (f) onLoadFile(f);
+      e.target.value = '';
+    }
+
+    function handleImageFile(e) {
+      const f = e.target.files?.[0];
+      if (f) onLoadImage(f);
       e.target.value = '';
     }
 
@@ -109,6 +116,12 @@
               <span className="vm-src-icon">▶</span>Upload Video
             </button>
             <input ref={fileInputRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={handleFile} />
+
+            <button className={`vm-src-btn${activeSource === 'image' ? ' active' : ''}`}
+              onClick={() => imgInputRef.current?.click()}>
+              <span className="vm-src-icon">⬡</span>Upload Image
+            </button>
+            <input ref={imgInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageFile} />
 
             <div className="vm-url-row">
               <input className="vm-url-in" type="text" placeholder="https://…"

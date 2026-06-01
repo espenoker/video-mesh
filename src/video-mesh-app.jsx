@@ -88,6 +88,11 @@
       viewerRef.current?.loadFile(file);
     }
 
+    function handleLoadImage(file) {
+      setFileName(file.name);
+      viewerRef.current?.loadImage(file);
+    }
+
     function handleLoadUrl(url) {
       if (!url.trim()) return;
       setFileName(null);
@@ -230,6 +235,7 @@
             activeSource={activeSource}
             fileName={fileName}
             onLoadFile={handleLoadFile}
+            onLoadImage={handleLoadImage}
             onLoadUrl={handleLoadUrl}
             onLoadWebcam={handleLoadWebcam}
             onLoadSample={handleLoadSample}
