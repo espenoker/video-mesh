@@ -106,6 +106,7 @@
     const streamRef = useRef(null);
     const stRef = useRef(0); // sample time for procedural
     const imgRef = useRef(null); // static image element
+    const camAnimRef = useRef(null); // { startTime, duration, loop }
 
     // typed arrays
     const pos = useRef(new Float32Array(MAX_PTS * 3));
@@ -282,6 +283,16 @@
       window.addEventListener('mouseup',  onPointerUp);
       window.addEventListener('touchend', onPointerUp);
 
+      function lerp(a, b, t) { return a + (b - a) * t; }
+      function applyEase(t, curve) {
+        switch (curve) {
+          case 'easeIn':    return t * t;
+          case 'easeOut':   return 1 - (1 - t) * (1 - t);
+          case 'easeInOut': return t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+          default:          return t; // linear
+        }
+      }
+
       let lastT = 0, fpsCnt = 0, fpsT = 0;
 
       function loop(ts) {
@@ -309,14 +320,24 @@
           renderer.setClearColor(0x000000, 0);
         }
 
-        // camera z: fit mesh height to ~80% of canvas height
-        {
+        // camera & rotation — animated or normal
+        const camAnim = camAnimRef.current;
+        if (camAnim) {
+          const elapsed = (ts - camAnim.startTime) / 1000;
+          let rawT = camAnim.loop
+            ? (elapsed % camAnim.duration) / camAnim.duration
+            : Math.min(elapsed / camAnim.duration, 1);
+          const t = applyEase(rawT, p.cameraCurve);
+          const DEG = Math.PI / 180;
+          cam.position.z = lerp(p.cameraFrom.z, p.cameraTo.z, t);
+          group.rotation.x = lerp(p.cameraFrom.rotX * DEG, p.cameraTo.rotX * DEG, t);
+          group.rotation.y = lerp(p.cameraFrom.rotY * DEG, p.cameraTo.rotY * DEG, t);
+          if (!camAnim.loop && elapsed >= camAnim.duration) camAnimRef.current = null;
+        } else {
           const tanHalf = Math.tan((55 / 2) * Math.PI / 180);
           cam.position.z = (p.meshScale / 2) / (tanHalf * 0.80);
+          if (p.autoRotateMesh) group.rotation.y += p.rotationSpeed * dt;
         }
-
-        // rotation
-        if (p.autoRotateMesh) group.rotation.y += p.rotationSpeed * dt;
 
         // sampling
         const src = srcRef.current;
@@ -419,7 +440,32 @@
         onSourceChange?.(null);
       },
       getFps() { return fpsRef.current; },
+      getCameraState() {
+        const DEG = 180 / Math.PI;
+        return {
+          z:    parseFloat((camRef.current?.position.z   ?? 2).toFixed(2)),
+          rotX: parseFloat(((groupRef.current?.rotation.x ?? -0.32) * DEG).toFixed(1)),
+          rotY: parseFloat(((groupRef.current?.rotation.y ?? 0)      * DEG).toFixed(1)),
+        };
+      },
+      startPreview() {
+        const p = paramsRef.current;
+        const DEG = Math.PI / 180;
+        groupRef.current.rotation.x = p.cameraFrom.rotX * DEG;
+        groupRef.current.rotation.y = p.cameraFrom.rotY * DEG;
+        camAnimRef.current = { startTime: performance.now(), duration: 3, loop: true };
+      },
+      stopPreview() {
+        camAnimRef.current = null;
+      },
       startRecording(durationSec) {
+        const p = paramsRef.current;
+        if (p.cameraMove) {
+          const DEG = Math.PI / 180;
+          groupRef.current.rotation.x = p.cameraFrom.rotX * DEG;
+          groupRef.current.rotation.y = p.cameraFrom.rotY * DEG;
+          camAnimRef.current = { startTime: performance.now(), duration: durationSec, loop: false };
+        }
         return new Promise((resolve, reject) => {
           const canvas = rendRef.current?.domElement;
           if (!canvas) return reject(new Error('No canvas'));
@@ -434,6 +480,7 @@
           const chunks = [];
           recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
           recorder.onstop = () => {
+            camAnimRef.current = null;
             const blob = new Blob(chunks, { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

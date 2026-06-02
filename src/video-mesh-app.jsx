@@ -8,7 +8,6 @@
     pointSize: 3,
     pointAspect: 1.0,
     minVisibility: 0.11,
-    meshType: 'points',
     motionSensitivity: 0.01,
     displacementStrength: 0.7,
     motionDamping: 0.76,
@@ -18,6 +17,10 @@
     globalHue: 240,
     lightness: 49,
     brightness: 79,
+    cameraMove: false,
+    cameraFrom: { z: 1.72, rotX: -18.3, rotY: 0 },
+    cameraTo:   { z: 1.72, rotX: -18.3, rotY: 0 },
+    cameraCurve: 'easeInOut',
     flipHorizontal: false,
     showBackgroundVideo: false,
     backgroundMode: 'solid',
@@ -48,6 +51,7 @@
     const [showAspect, setShowAspect] = useState(false);
     const [previewScale, setPreviewScale] = useState(1);
     const [recording, setRecording] = useState(null); // null | { duration, startTime }
+    const [cameraPreview, setCameraPreview] = useState(false);
 
     const viewerRef = useRef(null);
     const centerRef = useRef(null);
@@ -116,6 +120,19 @@
 
     function handleReset() {
       setParams(p => ({ ...DEFAULTS, title: p.title, description: p.description, tags: p.tags }));
+    }
+
+    function handleSetCameraFrom() {
+      const s = viewerRef.current?.getCameraState();
+      if (s) setParam('cameraFrom', s);
+    }
+    function handleSetCameraTo() {
+      const s = viewerRef.current?.getCameraState();
+      if (s) setParam('cameraTo', s);
+    }
+    function handleCameraPreview() {
+      if (cameraPreview) { viewerRef.current?.stopPreview(); setCameraPreview(false); }
+      else { viewerRef.current?.startPreview(); setCameraPreview(true); }
     }
 
     async function handleRecord(duration) {
@@ -243,6 +260,10 @@
             onReset={handleReset}
             recording={recording}
             onRecord={handleRecord}
+            cameraPreview={cameraPreview}
+            onSetCameraFrom={handleSetCameraFrom}
+            onSetCameraTo={handleSetCameraTo}
+            onCameraPreview={handleCameraPreview}
           />
           <div className="vm-status">
             {activeSource

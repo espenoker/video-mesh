@@ -50,7 +50,7 @@
     );
   }
 
-  function VideoMeshControls({ params, setParam, activeSource, fileName, onLoadFile, onLoadUrl, onLoadWebcam, onLoadSample, onLoadImage, onClear, onReset, recording, onRecord }) {
+  function VideoMeshControls({ params, setParam, activeSource, fileName, onLoadFile, onLoadUrl, onLoadWebcam, onLoadSample, onLoadImage, onClear, onReset, recording, onRecord, cameraPreview, onSetCameraFrom, onSetCameraTo, onCameraPreview }) {
     const [urlVal, setUrlVal] = useState('');
     const [showAspect, setShowAspect] = useState(false);
     const [recRemaining, setRecRemaining] = React.useState(0);
@@ -148,10 +148,6 @@
             <Slider label="Point Size" val={params.pointSize} min={1} max={20} step={0.5} onChange={v => setParam('pointSize', v)} />
             <Slider label="Point Aspect" val={params.pointAspect} min={0.1} max={5} step={0.05} onChange={v => setParam('pointAspect', v)} fmt={v => v.toFixed(2) + '×'} />
             <Slider label="Min Visibility" val={params.minVisibility} min={0} max={0.5} step={0.01} onChange={v => setParam('minVisibility', v)} />
-            <div style={{ marginTop: 6 }}>
-              <div className="vm-sl-head"><span className="vm-sl-lbl">Mesh Type</span></div>
-              <Seg options={[{ v: 'points', l: 'Points' }]} value={params.meshType} onChange={v => setParam('meshType', v)} />
-            </div>
           </Acc>
 
           {/* 3. MOTION & ANIMATION */}
@@ -182,8 +178,59 @@
             <Toggle label="Show Background Video" value={params.showBackgroundVideo} onChange={v => setParam('showBackgroundVideo', v)} />
           </Acc>
 
-          {/* 5. EXPORT */}
-          <Acc num="5." title="Export">
+          {/* 5. CAMERA MOVE */}
+          <Acc num="5." title="Camera Move">
+            <Toggle label="Enable" value={params.cameraMove} onChange={v => setParam('cameraMove', v)} />
+            {params.cameraMove && (
+              <React.Fragment>
+                {/* FROM */}
+                <div className="vm-cam-kf">
+                  <div className="vm-cam-kf-head">
+                    <span className="vm-sl-lbl">From</span>
+                    <button className="vm-cam-set" onClick={onSetCameraFrom}>Set Now</button>
+                  </div>
+                  <Slider label="Z" val={params.cameraFrom.z} min={0.3} max={5} step={0.01} onChange={v => setParam('cameraFrom', { ...params.cameraFrom, z: v })} />
+                  <Slider label="Rot X" val={params.cameraFrom.rotX} min={-90} max={90} step={0.5} onChange={v => setParam('cameraFrom', { ...params.cameraFrom, rotX: v })} fmt={v => `${v.toFixed(1)}°`} />
+                  <Slider label="Rot Y" val={params.cameraFrom.rotY} min={-180} max={180} step={0.5} onChange={v => setParam('cameraFrom', { ...params.cameraFrom, rotY: v })} fmt={v => `${v.toFixed(1)}°`} />
+                </div>
+                {/* TO */}
+                <div className="vm-cam-kf">
+                  <div className="vm-cam-kf-head">
+                    <span className="vm-sl-lbl">To</span>
+                    <button className="vm-cam-set" onClick={onSetCameraTo}>Set Now</button>
+                  </div>
+                  <Slider label="Z" val={params.cameraTo.z} min={0.3} max={5} step={0.01} onChange={v => setParam('cameraTo', { ...params.cameraTo, z: v })} />
+                  <Slider label="Rot X" val={params.cameraTo.rotX} min={-90} max={90} step={0.5} onChange={v => setParam('cameraTo', { ...params.cameraTo, rotX: v })} fmt={v => `${v.toFixed(1)}°`} />
+                  <Slider label="Rot Y" val={params.cameraTo.rotY} min={-180} max={180} step={0.5} onChange={v => setParam('cameraTo', { ...params.cameraTo, rotY: v })} fmt={v => `${v.toFixed(1)}°`} />
+                </div>
+                {/* Curve */}
+                <div style={{ marginTop: 2 }}>
+                  <div className="vm-sl-head" style={{ marginBottom: 3 }}><span className="vm-sl-lbl">Curve</span></div>
+                  <div className="vm-cam-curves">
+                    {[
+                      { v: 'linear',    l: 'Linear' },
+                      { v: 'easeIn',   l: 'Ease In' },
+                      { v: 'easeOut',  l: 'Ease Out' },
+                      { v: 'easeInOut', l: 'In-Out' },
+                    ].map(c => (
+                      <button key={c.v}
+                        className={`vm-cam-curve-btn${params.cameraCurve === c.v ? ' on' : ''}`}
+                        onClick={() => setParam('cameraCurve', c.v)}>{c.l}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Preview */}
+                <button
+                  className={`vm-cam-preview${cameraPreview ? ' active' : ''}`}
+                  onClick={onCameraPreview}>
+                  {cameraPreview ? '■ Stop Preview' : '▶ Preview (3s loop)'}
+                </button>
+              </React.Fragment>
+            )}
+          </Acc>
+
+          {/* 6. EXPORT */}
+          <Acc num="6." title="Export">
             {recording ? (
               <div className="vm-rec-active">
                 <span className="vm-rec-dot" />
@@ -206,8 +253,8 @@
             )}
           </Acc>
 
-          {/* 6. BACKGROUND */}
-          <Acc num="6." title="Background">
+          {/* 7. BACKGROUND */}
+          <Acc num="7." title="Background">
             <div className="vm-bg-modes">
               {['none', 'solid', 'image'].map(m => (
                 <button key={m} className={`vm-bg-mode${params.backgroundMode === m ? ' on' : ''}`}

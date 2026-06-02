@@ -169,6 +169,19 @@ input[type="color"]::-webkit-color-swatch{border:none}
 @keyframes vmblink{0%,100%{opacity:1}50%{opacity:.2}}
 .vm-status-fps{color:var(--ink-faint);font-variant-numeric:tabular-nums}
 
+/* CAMERA MOVE */
+.vm-cam-kf{border:1px solid var(--hairline);padding:8px 8px 4px;margin-top:8px;background:rgba(255,255,255,0.015)}
+.vm-cam-kf-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.vm-cam-set{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(0,212,255,0.28);padding:3px 8px;background:var(--accent-glow);transition:all 100ms;cursor:pointer}
+.vm-cam-set:hover{background:rgba(0,212,255,0.18)}
+.vm-cam-curves{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:3px}
+.vm-cam-curve-btn{padding:5px 3px;background:rgba(255,255,255,0.025);border:1px solid var(--hairline);color:var(--ink-faint);font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;text-align:center;transition:all 100ms;cursor:pointer}
+.vm-cam-curve-btn:hover{color:var(--ink-dim);border-color:rgba(255,255,255,0.18)}
+.vm-cam-curve-btn.on{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
+.vm-cam-preview{width:100%;margin-top:8px;padding:7px;background:rgba(255,255,255,0.03);border:1px solid var(--hairline);color:var(--ink-dim);font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;transition:all 120ms;cursor:pointer}
+.vm-cam-preview:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.22);color:var(--ink)}
+.vm-cam-preview.active{color:var(--hot);border-color:rgba(255,90,31,0.4);background:rgba(255,90,31,0.06)}
+
 /* EXPORT / RECORDING */
 .vm-rec-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
 .vm-rec-btn{padding:7px 4px;background:rgba(255,255,255,0.03);border:1px solid var(--hairline);color:var(--ink-dim);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-align:center;transition:all 120ms;cursor:pointer}
