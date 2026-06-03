@@ -14,9 +14,10 @@
     autoRotateMesh: false,
     rotationSpeed: 0.1,
     useVideoColors: false,
-    globalHue: 240,
-    lightness: 49,
-    brightness: 79,
+    globalHue: 206,
+    globalSaturation: 21,
+    lightness: 23,
+    brightness: 100,
     cameraMove: false,
     cameraFrom: { z: 1.72, rotX: -18.3, rotY: 0 },
     cameraTo:   { z: 1.72, rotX: -18.3, rotY: 0 },
@@ -24,11 +25,13 @@
     flipHorizontal: false,
     showBackgroundVideo: false,
     backgroundMode: 'solid',
-    backgroundColor: '#000000',
+    backgroundColor: '#ffffff',
     backgroundOpacity: 1,
     outputWidth: 800,
     outputHeight: 450,
     aspectPreset: 'custom',
+    exportScale: 1,
+    exportFps: 30,
     title: 'Video Mesh',
     description: '3D point cloud on video',
     tags: [],
@@ -213,6 +216,14 @@
                   onSourceChange={setActiveSource}
                 />
               </div>
+              {/* Reset camera button — bottom-right corner of scaled canvas */}
+              {activeSource && (
+                <button
+                  className="vm-reset-cam"
+                  onClick={() => viewerRef.current?.resetCamera()}
+                  title="Reset camera"
+                >↺</button>
+              )}
             </div>
           </div>
 

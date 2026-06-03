@@ -169,6 +169,7 @@
                     fmt={v => `${v}°`} />
                   <div style={{ height: 8, borderRadius: 4, marginBottom: 8, border: '1px solid rgba(255,255,255,0.08)',
                     background: 'linear-gradient(to right,hsl(0,100%,50%),hsl(60,100%,50%),hsl(120,100%,50%),hsl(180,100%,50%),hsl(240,100%,50%),hsl(300,100%,50%),hsl(360,100%,50%))' }} />
+                  <Slider label="Saturation" val={params.globalSaturation ?? 100} min={0} max={100} step={1} onChange={v => setParam('globalSaturation', v)} fmt={v => `${v}%`} />
                   <Slider label="Lightness" val={params.lightness} min={10} max={90} step={1} onChange={v => setParam('lightness', v)} fmt={v => `${v}%`} />
                   <Slider label="Brightness" val={params.brightness} min={0} max={200} step={1} onChange={v => setParam('brightness', v)} fmt={v => `${v}%`} />
                 </div>
@@ -231,6 +232,31 @@
 
           {/* 6. EXPORT */}
           <Acc num="6." title="Export">
+            {/* Resolution & FPS — always visible */}
+            <div style={{ marginBottom: 9 }}>
+              <div className="vm-sl-head" style={{ marginBottom: 4 }}>
+                <span className="vm-sl-lbl">Resolution</span>
+                <span className="vm-sl-val" style={{ fontSize: 8, color: 'var(--ink-faint)' }}>
+                  {params.outputWidth * params.exportScale} × {params.outputHeight * params.exportScale}
+                </span>
+              </div>
+              <Seg
+                options={[{ v: 1, l: '1×' }, { v: 2, l: '2×' }, { v: 3, l: '3×' }]}
+                value={params.exportScale}
+                onChange={v => setParam('exportScale', v)}
+              />
+            </div>
+            <div style={{ marginBottom: 9 }}>
+              <div className="vm-sl-head" style={{ marginBottom: 4 }}>
+                <span className="vm-sl-lbl">Frame Rate</span>
+              </div>
+              <Seg
+                options={[{ v: 24, l: '24fps' }, { v: 30, l: '30fps' }, { v: 60, l: '60fps' }]}
+                value={params.exportFps}
+                onChange={v => setParam('exportFps', v)}
+              />
+            </div>
+            {/* Duration / recording state */}
             {recording ? (
               <div className="vm-rec-active">
                 <span className="vm-rec-dot" />

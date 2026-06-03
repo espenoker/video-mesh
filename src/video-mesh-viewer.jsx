@@ -107,6 +107,8 @@
     const stRef = useRef(0); // sample time for procedural
     const imgRef = useRef(null); // static image element
     const camAnimRef = useRef(null); // { startTime, duration, loop }
+    const userZRef = useRef(null);  // null = auto-fit; number = manual override
+    const recordingRef = useRef(false); // true while MediaRecorder is active
 
     // typed arrays
     const pos = useRef(new Float32Array(MAX_PTS * 3));
@@ -130,7 +132,7 @@
     const updateGeom = useCallback((ctx, sw, sh, p) => {
       const data = ctx.getImageData(0, 0, sw, sh).data;
       const aspect = sw / sh;
-      const [br, bg, bb] = hsl(p.globalHue, 1.0, p.lightness / 100);
+      const [br, bg, bb] = hsl(p.globalHue, (p.globalSaturation ?? 100) / 100, p.lightness / 100);
       const bri = p.brightness / 100;
       const n = sw * sh;
       for (let y = 0; y < sh; y++) {
@@ -249,12 +251,14 @@
       document.body.appendChild(vid);
       vidRef.current = vid;
 
-      // Drag-to-rotate
+      // Drag-to-rotate + scroll/pinch for Z depth
       const drag = { active: false, x: 0, y: 0 };
+      let pinchDist = null;
       const el = renderer.domElement;
       el.style.cursor = 'grab';
 
       function onPointerDown(e) {
+        if (e.touches && e.touches.length > 1) return; // let pinch handle it
         drag.active = true;
         drag.x = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
         drag.y = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
@@ -262,6 +266,20 @@
         e.preventDefault();
       }
       function onPointerMove(e) {
+        // Pinch-to-zoom (two fingers)
+        if (e.touches && e.touches.length === 2) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (pinchDist !== null) {
+            const delta = (pinchDist - dist) * 0.012;
+            userZRef.current = Math.max(0.3, Math.min(10, (userZRef.current ?? cam.position.z) + delta));
+          }
+          pinchDist = dist;
+          e.preventDefault();
+          return;
+        }
+        pinchDist = null;
         if (!drag.active) return;
         const cx = e.clientX ?? e.touches?.[0]?.clientX ?? drag.x;
         const cy = e.clientY ?? e.touches?.[0]?.clientY ?? drag.y;
@@ -273,11 +291,18 @@
       }
       function onPointerUp() {
         drag.active = false;
+        pinchDist = null;
         el.style.cursor = 'grab';
+      }
+      function onWheel(e) {
+        const delta = e.deltaY * 0.004;
+        userZRef.current = Math.max(0.3, Math.min(10, (userZRef.current ?? cam.position.z) + delta));
+        e.preventDefault();
       }
 
       el.addEventListener('mousedown',  onPointerDown);
       el.addEventListener('touchstart', onPointerDown, { passive: false });
+      el.addEventListener('wheel',      onWheel,       { passive: false });
       window.addEventListener('mousemove',  onPointerMove);
       window.addEventListener('touchmove',  onPointerMove, { passive: false });
       window.addEventListener('mouseup',  onPointerUp);
@@ -306,11 +331,15 @@
         mat.uniforms.uPS.value = p.pointSize;
         mat.uniforms.uPA.value = p.pointAspect ?? 1.0;
 
-        // resize if needed
-        if (renderer.domElement.width !== p.outputWidth || renderer.domElement.height !== p.outputHeight) {
-          renderer.setSize(p.outputWidth, p.outputHeight);
-          cam.aspect = p.outputWidth / p.outputHeight;
-          cam.updateProjectionMatrix();
+        // resize if needed (skip during recording to preserve export resolution)
+        if (!recordingRef.current) {
+          const cssW = parseInt(renderer.domElement.style.width)  || p.outputWidth;
+          const cssH = parseInt(renderer.domElement.style.height) || p.outputHeight;
+          if (cssW !== p.outputWidth || cssH !== p.outputHeight) {
+            renderer.setSize(p.outputWidth, p.outputHeight);
+            cam.aspect = p.outputWidth / p.outputHeight;
+            cam.updateProjectionMatrix();
+          }
         }
 
         // background
@@ -335,7 +364,8 @@
           if (!camAnim.loop && elapsed >= camAnim.duration) camAnimRef.current = null;
         } else {
           const tanHalf = Math.tan((55 / 2) * Math.PI / 180);
-          cam.position.z = (p.meshScale / 2) / (tanHalf * 0.80);
+          const autoZ = (p.meshScale / 2) / (tanHalf * 0.80);
+          cam.position.z = userZRef.current ?? autoZ;
           if (p.autoRotateMesh) group.rotation.y += p.rotationSpeed * dt;
         }
 
@@ -379,6 +409,7 @@
         cancelAnimationFrame(rafRef.current);
         el.removeEventListener('mousedown',  onPointerDown);
         el.removeEventListener('touchstart', onPointerDown);
+        el.removeEventListener('wheel',      onWheel);
         window.removeEventListener('mousemove',  onPointerMove);
         window.removeEventListener('touchmove',  onPointerMove);
         window.removeEventListener('mouseup',  onPointerUp);
@@ -440,6 +471,11 @@
         onSourceChange?.(null);
       },
       getFps() { return fpsRef.current; },
+      resetCamera() {
+        userZRef.current = null;
+        group.rotation.x = -0.32;
+        group.rotation.y = 0;
+      },
       getCameraState() {
         const DEG = 180 / Math.PI;
         return {
@@ -466,11 +502,17 @@
           groupRef.current.rotation.y = p.cameraFrom.rotY * DEG;
           camAnimRef.current = { startTime: performance.now(), duration: durationSec, loop: false };
         }
+        // Upscale framebuffer for export (CSS/layout unchanged)
+        const scale = p.exportScale ?? 1;
+        const fps   = p.exportFps   ?? 30;
+        recordingRef.current = true;
+        rendRef.current.setPixelRatio(scale);
+        rendRef.current.setSize(p.outputWidth, p.outputHeight, false); // false = keep CSS size
         return new Promise((resolve, reject) => {
           const canvas = rendRef.current?.domElement;
           if (!canvas) return reject(new Error('No canvas'));
           let stream;
-          try { stream = canvas.captureStream(30); }
+          try { stream = canvas.captureStream(fps); }
           catch(e) { return reject(new Error('captureStream not supported in this browser')); }
           const mimeType = ['video/webm;codecs=vp9', 'video/webm']
             .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch{ return false; } }) || 'video/webm';
@@ -481,6 +523,10 @@
           recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
           recorder.onstop = () => {
             camAnimRef.current = null;
+            recordingRef.current = false;
+            // Restore preview resolution
+            rendRef.current.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            rendRef.current.setSize(p.outputWidth, p.outputHeight, false);
             const blob = new Blob(chunks, { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -489,7 +535,12 @@
             URL.revokeObjectURL(url);
             resolve();
           };
-          recorder.onerror = e => reject(e.error ?? new Error('Recording error'));
+          recorder.onerror = e => {
+            recordingRef.current = false;
+            rendRef.current.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            rendRef.current.setSize(p.outputWidth, p.outputHeight, false);
+            reject(e.error ?? new Error('Recording error'));
+          };
           recorder.start(100);
           setTimeout(() => recorder.stop(), durationSec * 1000);
         });
